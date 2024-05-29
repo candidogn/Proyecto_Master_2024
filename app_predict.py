@@ -2,44 +2,48 @@ import streamlit as st
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import StandardScaler
 
-# Cargar los datos
+# Cargar datos
 @st.cache
-def load_data():
-    datos = pd.read_csv('datos_interacciones.csv')
-    return datos
+def cargar_datos():
+    # Asumiendo que 'datos_interacciones.csv' es el archivo con los datos necesarios
+    data = pd.read_csv('datos_interacciones.csv')
+    return data
 
-datos = load_data()
+# Entrenar modelo
+def entrenar_modelo(data):
+    X = data[['variable_1', 'variable_2', 'variable_3', 'variable_4', 'variable_5', 'variable_6', 'variable_7', 'variable_8']]
+    y = data['objetivo']
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+    modelo = LinearRegression()
+    modelo.fit(X_train, y_train)
+    return modelo, scaler
 
-# Dividir los datos en entrenamiento y prueba
-X = datos[['variable_1', 'variable_2', 'variable_3', 'variable_4', 'variable_5', 'variable_6', 'variable_7', 'variable_8']]
-y = datos['valor_objetivo']
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# Entrenar el modelo de regresión
-modelo = LinearRegression()
-modelo.fit(X_train, y_train)
-
-# Crear la aplicación Streamlit
+# App
 def main():
-    st.title('Predicción de Regresión Múltiple')
+    st.title('Predicción de Interacciones')
 
-    # Entradas del usuario para las variables
-    v1 = st.number_input('Inserte variable_1')
-    v2 = st.number_input('Inserte variable_2')
-    v3 = st.number_input('Inserte variable_3')
-    v4 = st.number_input('Inserte variable_4')
-    v5 = st.number_input('Inserte variable_5')
-    v6 = st.number_input('Inserte variable_6')
-    v7 = st.number_input('Inserte variable_7')
-    v8 = st.number_input('Inserte variable_8')
+    data = cargar_datos()
+    modelo, scaler = entrenar_modelo(data)
+
+    # Crear entradas para las variables
+    inputs = []
+    for i in range(1, 9):
+        inp = st.number_input(f'Variable {i}', step=0.01)
+        inputs.append(inp)
 
     if st.button('Predecir'):
-        # Realizar la predicción
-        resultado = modelo.predict([[v1, v2, v3, v4, v5, v6, v7, v8]])
-        st.write(f'El valor objetivo predicho es: {resultado[0]}')
+        inputs_scaled = scaler.transform([inputs])
+        resultado = modelo.predict(inputs_scaled)[0]
+        if resultado == 0:
+            st.success("Enruta la llamada al grupo")
+        elif resultado == 1:
+            st.success("Por favor confirma el motivo de la llamada")
+        else:
+            st.error("Predicción no válida")
 
 if __name__ == '__main__':
     main()
